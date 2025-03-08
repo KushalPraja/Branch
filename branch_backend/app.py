@@ -1,16 +1,17 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 from bson import ObjectId
-from pydantic import BaseModel, Field
-from typing import List, Optional
+from pydantic import BaseModel, Field, EmailStr
+from typing import List, Optional, Dict, Any
 import jwt
 import bcrypt
 import os
 import ssl
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
+import logging
 
 # Load environment variables
 load_dotenv()
@@ -57,10 +58,6 @@ async def startup_event():
         print(f"Route: {route.path} - {route.methods}")
     print("-" * 50)
 
-# Add this after the FastAPI app initialization
-from fastapi import Request
-import logging
-
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -77,10 +74,19 @@ async def log_requests(request: Request, call_next):
     return response
 
 # Models - Fix the order to resolve circular references
+class ThemeSettings(BaseModel):
+    pageBackground: Optional[str] = "bg-black"
+    buttonStyle: Optional[str] = "solid"
+
 class UserCreate(BaseModel):
     username: str
-    email: str
+    email: EmailStr
     password: str
+
+class UserUpdate(BaseModel):
+    name: Optional[str] = None
+    bio: Optional[str] = None
+    theme: Optional[ThemeSettings] = None
 
 class LinkCreate(BaseModel):
     title: str
@@ -96,7 +102,7 @@ class UserResponse(BaseModel):
     email: str
     name: Optional[str] = None
     bio: Optional[str] = None
-    avatar: Optional[str] = None
+    theme: Optional[ThemeSettings] = None
     links: List[LinkResponse] = []
 
 class Token(BaseModel):
@@ -187,16 +193,21 @@ def signup(user_data: UserCreate):
 # User Endpoints
 @app.get(f"{API_PREFIX}/me/", response_model=UserResponse)
 def get_current_user_profile(user: dict = Depends(get_current_user)):
+    # Ensure theme exists in the response, with defaults if not present
+    if "theme" not in user:
+        user["theme"] = {
+            "pageBackground": "bg-black",
+            "buttonStyle": "solid"
+        }
     return user
 
 @app.put(f"{API_PREFIX}/me/")
 def update_profile(profile_data: dict, user: dict = Depends(get_current_user)):
-    # Remove the user_id condition which might cause issues
     users_collection.update_one({"_id": ObjectId(user["id"])}, {"$set": profile_data})
     return {"message": "Profile updated"}
 
 # Add this public user endpoint - with a slightly different path pattern
-@app.get(f"{API_PREFIX}/users/{{username}}")
+@app.get(f"{API_PREFIX}/users/{{username}}", response_model=UserResponse)
 async def get_user_by_username(username: str):
     print(f"DEBUG: Endpoint was called with username: '{username}'")
     
@@ -216,11 +227,12 @@ async def get_user_by_username(username: str):
     user_data = {
         "id": str(user["_id"]),
         "username": user["username"],
-        "email": user["email"],
+        "email": user.get("email", ""),
         "name": user.get("name"),
         "bio": user.get("bio"),
         "avatar": user.get("avatar"),
-        "links": []  # Initialize with empty links
+        "theme": user.get("theme", {"pageBackground": "bg-black", "buttonStyle": "solid"}),
+        "links": []  # Initialize with empty links, will be filled later
     }
     
     # Print user ID for debugging
@@ -244,6 +256,13 @@ async def get_user_by_username(username: str):
         "url": link.get("url", ""),
         "icon": link.get("icon")
     } for link in links]
+    
+    # Ensure theme exists in the response, with defaults if not present
+    if "theme" not in user_data:
+        user_data["theme"] = {
+            "pageBackground": "bg-black",
+            "buttonStyle": "solid"
+        }
     
     print(f"DEBUG: Returning user with {len(user_data['links'])} links")
     return user_data
@@ -286,8 +305,6 @@ def favicon():
 @app.get("/")
 def read_root():
     return {"message": "Welcome to the FastAPI Linktree Clone!"}
-
-
 
 # Add CORS middleware if needed
 from fastapi.middleware.cors import CORSMiddleware

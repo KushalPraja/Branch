@@ -9,15 +9,19 @@ type User = {
   id: string;
   username: string;
   email: string;
-  name: string | null;
-  bio: string | null;
-  avatar: string | null;
-  links: Array<{
+  name?: string;
+  bio?: string;
+  avatar?: string;
+  links?: Array<{
     id: string;
     title: string;
     url: string;
     icon?: string;
   }>;
+  theme?: {
+    pageBackground?: string;
+    buttonStyle?: 'solid' | 'outline' | 'gradient';
+  };
 };
 
 // Define context type

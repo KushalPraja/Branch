@@ -1,21 +1,24 @@
 'use client' 
-import { useState } from 'react';
+import React, { useState } from 'react';
 
 interface LinkCardProps {
-  id: string;
   title: string;
   url: string;
+  buttonClassName?: string;
+  id?: string;
   icon?: string;
 }
 
-export default function LinkCard({ title, url, icon }: LinkCardProps) {
+export default function LinkCard({ title, url, buttonClassName = '', icon }: LinkCardProps) {
   const [clicked, setClicked] = useState(false);
   
   const handleClick = () => {
     setClicked(true);
-    // Reset the "clicked" state after animation completes
     setTimeout(() => setClicked(false), 500);
   };
+
+  const defaultButtonClass = "bg-purple-600 hover:bg-purple-700 text-white";
+  const buttonClass = buttonClassName || defaultButtonClass;
   
   return (
     <a 
@@ -23,7 +26,7 @@ export default function LinkCard({ title, url, icon }: LinkCardProps) {
       target="_blank" 
       rel="noopener noreferrer"
       onClick={handleClick}
-      className={`flex items-center p-4 rounded-lg border border-zinc-800 bg-zinc-900 hover:bg-zinc-800 transition-all ${clicked ? 'scale-95' : ''}`}
+      className={`flex items-center p-4 rounded-lg border border-zinc-800 bg-zinc-900 hover:bg-zinc-800 transition-all ${clicked ? 'scale-95' : ''} ${buttonClass}`}
     >
       {icon && <span className="mr-3 text-xl">{icon}</span>}
       <span className="font-medium">{title}</span>

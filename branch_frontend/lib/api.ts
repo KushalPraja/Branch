@@ -83,9 +83,16 @@ export const getUserProfile = async (username: string) => {
   }
 };
 
-export const updateProfile = async (profileData: { name?: string; bio?: string; avatar?: string }) => {
+export const updateProfile = async (data: { 
+  name?: string; 
+  bio?: string;
+  theme?: {
+    pageBackground?: string;
+    buttonStyle?: string;
+  }
+}) => {
   try {
-    const response = await api.put(`${API_PREFIX}/me/`, profileData);
+    const response = await api.put(`${API_PREFIX}/me/`, data);
     return response;
   } catch (error) {
     console.error('Error updating profile:', error);

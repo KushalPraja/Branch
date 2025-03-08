@@ -28,8 +28,27 @@ export default function BranchPage({ params }: { params: { username: string } })
   if (profile === undefined) return <div>Loading...</div>;
   if (profile === null) return <div>User not found</div>;
 
+  // Get theme settings or use defaults
+  const pageBackground = profile.theme?.pageBackground || 'bg-black';
+  const buttonStyle = profile.theme?.buttonStyle || 'solid';
+
+  // Generate appropriate button classes based on buttonStyle
+  const getLinkCardButtonClass = () => {
+    switch (buttonStyle) {
+      case 'solid':
+        return 'bg-purple-600 hover:bg-purple-700 text-white';
+      case 'outline':
+        return 'bg-transparent border border-purple-600 text-purple-600 hover:bg-purple-600/10';
+      case 'gradient':
+        return 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white';
+      default:
+        return 'bg-purple-600 hover:bg-purple-700 text-white';
+    }
+  };
+
+  // Apply the user's theme settings to the public profile page
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-gradient-to-b from-zinc-900 to-black text-white">
+    <div className={`flex flex-col items-center justify-center min-h-screen p-6 ${pageBackground} text-white`}>
       <div className="max-w-md w-full space-y-8 text-center">
         <div className="flex flex-col items-center">
           <Image 
@@ -45,7 +64,11 @@ export default function BranchPage({ params }: { params: { username: string } })
         
         <div className="mt-8 space-y-4">
           {profile.links.map((link: any) => (
-            <LinkCard key={link.id} {...link} />
+            <LinkCard 
+              key={link.id} 
+              {...link} 
+              buttonClassName={getLinkCardButtonClass()} 
+            />
           ))}
           
           {profile.links.length === 0 && (
