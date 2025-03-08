@@ -42,6 +42,7 @@ export default function Dashboard() {
   // Theme settings (for preview and configuration only)
   const [pageBackground, setPageBackground] = useState('bg-black');
   const [buttonStyle, setButtonStyle] = useState('solid');
+  const [fontFamily, setFontFamily] = useState('font-inter');
   
   const router = useRouter();
   
@@ -69,6 +70,7 @@ export default function Dashboard() {
       if (user.theme) {
         setPageBackground(user.theme.pageBackground || 'bg-black');
         setButtonStyle(user.theme.buttonStyle || 'solid');
+        setFontFamily(user.theme.fontFamily || 'font-inter');
       }
       
       // Directly fetch links from the database instead of using user object
@@ -228,7 +230,8 @@ export default function Dashboard() {
         avatar: uploadedAvatarUrl, // Send this to be saved in the backend
         theme: {
           pageBackground,
-          buttonStyle
+          buttonStyle,
+          fontFamily
         }
       };
       
@@ -274,7 +277,8 @@ export default function Dashboard() {
       await updateProfile({ 
         theme: {
           pageBackground,
-          buttonStyle
+          buttonStyle,
+          fontFamily
         }
       });
       alert("Theme settings saved successfully!");
@@ -288,11 +292,12 @@ export default function Dashboard() {
 
   // Preview component for the theme settings 
   const ThemePreview = () => (
-    <div className={`w-full h-32 rounded-lg ${pageBackground} flex items-center justify-center overflow-hidden border border-zinc-700 mb-4`}>
-      <div className="text-center p-4">
-        <div className="text-lg font-bold mb-2">Theme Preview</div>
+    <div className={`w-full h-40 rounded-xl ${pageBackground} flex items-center justify-center overflow-hidden border border-zinc-700 mb-6 shadow-lg shadow-black/30 relative`}>
+      <div className="absolute inset-0 w-full h-full opacity-40 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.1),transparent)]"></div>
+      <div className={`text-center p-4 relative z-10 ${fontFamily}`}>
+        <div className="text-lg font-bold mb-3">Theme Preview</div>
         <button 
-          className={`px-4 py-2 rounded-md ${
+          className={`px-6 py-2.5 rounded-md ${
             buttonStyle === 'solid' ? 'bg-purple-600 text-white' : 
             buttonStyle === 'outline' ? 'bg-transparent border border-purple-600 text-purple-600' : 
             'bg-gradient-to-r from-purple-600 to-blue-600 text-white'
@@ -614,23 +619,34 @@ export default function Dashboard() {
                   </p>
                   
                   {/* Enhanced theme preview */}
-                  <div className={`w-full h-40 rounded-xl ${pageBackground} flex items-center justify-center overflow-hidden border border-zinc-700 mb-6 shadow-lg shadow-black/30 relative`}>
-                    <div className="absolute inset-0 w-full h-full opacity-40 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.1),transparent)]"></div>
-                    <div className="text-center p-4 relative z-10">
-                      <div className="text-lg font-bold mb-3">Theme Preview</div>
-                      <button 
-                        className={`px-6 py-2.5 rounded-md ${
-                          buttonStyle === 'solid' ? 'bg-purple-600 text-white' : 
-                          buttonStyle === 'outline' ? 'bg-transparent border border-purple-600 text-purple-600' : 
-                          'bg-gradient-to-r from-purple-600 to-blue-600 text-white'
-                        }`}
-                      >
-                        Button Preview
-                      </button>
-                    </div>
-                  </div>
+                  <ThemePreview />
                   
                   <div className="space-y-6">
+                    {/* Font Family Selection */}
+                    <div>
+                      <label className="block text-sm font-medium mb-3 text-zinc-300">Font Style</label>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        {[
+                          { value: 'font-inter', label: 'Inter', sample: 'Modern & Clean' },
+                          { value: 'font-poppins', label: 'Poppins', sample: 'Friendly & Rounded' },
+                          { value: 'font-montserrat', label: 'Montserrat', sample: 'Classic & Elegant' },
+                          { value: 'font-roboto', label: 'Roboto', sample: 'Neutral & Balanced' },
+                          { value: 'font-oswald', label: 'Oswald', sample: 'Bold & Distinctive' },
+                          { value: 'font-playfair', label: 'Playfair', sample: 'Stylish & Refined' }
+                        ].map((font) => (
+                          <button 
+                            key={font.value}
+                            onClick={() => setFontFamily(font.value)}
+                            className={`flex flex-col items-center justify-center p-4 rounded-lg bg-zinc-800/50 border ${fontFamily === font.value ? 'border-purple-500' : 'border-zinc-700/50'} hover:border-purple-500/50 transition-all`}
+                          >
+                            <span className={`text-lg font-medium ${font.value}`}>{font.label}</span>
+                            <span className={`text-xs text-zinc-400 mt-1 ${font.value}`}>{font.sample}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    {/* Existing Page Background Selection */}
                     <div>
                       <label className="block text-sm font-medium mb-3 text-zinc-300">Page Background</label>
                       <div className="grid grid-cols-5 gap-3">
@@ -655,6 +671,7 @@ export default function Dashboard() {
                       </div>
                     </div>
                     
+                    {/* Existing Button Style Selection */}
                     <div>
                       <label className="block text-sm font-medium mb-3 text-zinc-300">Button Style</label>
                       <div className="grid grid-cols-3 gap-3">

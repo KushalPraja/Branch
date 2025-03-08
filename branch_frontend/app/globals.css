@@ -71,6 +71,31 @@
   }
 }
 
+/* Font family utility classes */
+.font-inter {
+  font-family: var(--font-inter);
+}
+
+.font-poppins {
+  font-family: var(--font-poppins);
+}
+
+.font-montserrat {
+  font-family: var(--font-montserrat);
+}
+
+.font-roboto {
+  font-family: var(--font-roboto);
+}
+
+.font-oswald {
+  font-family: var(--font-oswald);
+}
+
+.font-playfair {
+  font-family: var(--font-playfair);
+}
+
 @keyframes spin-slow {
   from {
     transform: rotate(0deg);

@@ -21,7 +21,9 @@ type User = {
   theme?: {
     pageBackground?: string;
     buttonStyle?: 'solid' | 'outline' | 'gradient';
+    fontFamily?: string;
   };
+ 
 };
 
 // Define context type

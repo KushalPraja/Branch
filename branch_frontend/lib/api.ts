@@ -90,6 +90,7 @@ export const updateProfile = async (data: {
   theme?: {
     pageBackground?: string;
     buttonStyle?: string;
+    fontFamily?: string;
   }
 }) => {
   try {

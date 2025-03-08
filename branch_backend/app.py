@@ -77,6 +77,7 @@ async def log_requests(request: Request, call_next):
 class ThemeSettings(BaseModel):
     pageBackground: Optional[str] = "bg-black"
     buttonStyle: Optional[str] = "solid"
+    fontFamily: Optional[str] = "inter"
 
 class UserCreate(BaseModel):
     username: str
@@ -199,7 +200,8 @@ def get_current_user_profile(user: dict = Depends(get_current_user)):
     if "theme" not in user:
         user["theme"] = {
             "pageBackground": "bg-black",
-            "buttonStyle": "solid"
+            "buttonStyle": "solid",
+            "fontFamily": "inter"
         }
     return user
 

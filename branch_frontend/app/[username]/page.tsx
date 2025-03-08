@@ -31,10 +31,11 @@ export default function BranchPage({ params }: { params: { username: string } })
   // Get theme settings or use defaults
   const pageBackground = profile.theme?.pageBackground || 'bg-black';
   const buttonStyle = profile.theme?.buttonStyle || 'solid';
+  const fontFamily = profile.theme?.fontFamily || 'font-inter';
 
   // Apply the user's theme settings to the public profile page with modern design
   return (
-    <div className={`flex flex-col items-center min-h-screen py-20 px-6 ${pageBackground} text-white`}>
+    <div className={`flex flex-col items-center min-h-screen py-20 px-6 ${pageBackground} text-white ${fontFamily}`}>
       {/* Light effect overlay */}
       <div className="absolute inset-0 w-full h-full opacity-30 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.1),transparent)]"></div>
       
