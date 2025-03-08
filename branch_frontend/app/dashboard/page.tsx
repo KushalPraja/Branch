@@ -1,11 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { getCurrentUser, createLink, deleteLink, updateProfile } from '@/lib/api';
+import { createStorageClient } from '@/lib/supabase/client';
 import { 
   Home, 
   Link as LinkIcon, 
@@ -16,7 +18,8 @@ import {
   ExternalLink, 
   Trash2, 
   Copy, 
-  ChevronRight
+  ChevronRight,
+  Upload
 } from 'lucide-react';
 
 export default function Dashboard() {
@@ -29,6 +32,13 @@ export default function Dashboard() {
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('links');
   
+  // Avatar upload states
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
   // Theme settings (for preview and configuration only)
   const [pageBackground, setPageBackground] = useState('bg-black');
   const [buttonStyle, setButtonStyle] = useState('solid');
@@ -38,9 +48,7 @@ export default function Dashboard() {
   // Fetch links directly from database
   const fetchLinksFromDatabase = async () => {
     try {
-      console.log('Fetching fresh links from database...');
       const response = await getCurrentUser();
-      console.log('Fetched links from database:', response.data.links);
       setLinks(response.data.links || []);
     } catch (error) {
       console.error('Error fetching links from database:', error);
@@ -55,6 +63,7 @@ export default function Dashboard() {
     if (user) {
       setName(user.name || '');
       setBio(user.bio || '');
+      setAvatarUrl(user.avatar || null);
       
       // Set theme settings from user object if they exist
       if (user.theme) {
@@ -66,6 +75,101 @@ export default function Dashboard() {
       fetchLinksFromDatabase();
     }
   }, [isLoading, isAuthenticated, user, router]);
+  
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      
+      // Basic validation for image file types
+      if (!file.type.startsWith('image/')) {
+        alert('Please select an image file');
+        return;
+      }
+      
+      // Check file size (limit to 2MB)
+      if (file.size > 2 * 1024 * 1024) {
+        alert('Image size should be less than 2MB');
+        return;
+      }
+      
+      setAvatarFile(file);
+      setAvatarPreview(URL.createObjectURL(file));
+    }
+  };
+  const uploadAvatar = async (): Promise<string | null> => {
+    if (!avatarFile || !user) return null;
+    
+    setUploadingAvatar(true);
+    try {
+      // Create storage client
+      const storage = createStorageClient();
+      
+      // Delete all old avatars for the user
+      if (user?.id) {
+        try {
+          // List all files in the user's avatar directory
+          const { data: existingFiles, error: listError } = await storage
+        .from('user-content')
+        .list(`avatars/${user.id}`);
+        
+          if (listError) {
+        console.error("Error listing existing avatars:", listError);
+          } else if (existingFiles && existingFiles.length > 0) {
+        // Create an array of file paths to delete
+        const filesToDelete = existingFiles.map(file => `avatars/${user.id}/${file.name}`);
+        
+        // Delete all existing avatar files for this user
+        const { error: deleteError } = await storage
+          .from('user-content')
+          .remove(filesToDelete);
+          
+        if (deleteError) {
+          console.error("Error deleting old avatars:", deleteError);
+        } else {
+          console.log(`Successfully deleted ${filesToDelete.length} old avatar(s)`);
+        }
+          }
+        } catch (deleteError) {
+          console.error("Error handling old avatars:", deleteError);
+          // Continue with upload even if delete fails
+        }
+      }
+      
+      // Generate a unique filename
+      const fileExt = avatarFile.name.split('.').pop();
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+      const filePath = `avatars/${user.id}/${fileName}`;
+      
+      // Upload the file to bucket 'user-content'
+      const { data, error } = await storage
+        .from('user-content')
+        .upload(filePath, avatarFile, {
+          cacheControl: '3600',
+          upsert: true // Replace if exists
+        });
+        
+      if (error) {
+        throw error;
+      }
+      
+      if (!data?.path) {
+        throw new Error('Upload succeeded but no path was returned');
+      }
+      
+      // Get the public URL using the getPublicUrl method from the reference
+      const { data: publicUrlData } = storage
+        .from('user-content')
+        .getPublicUrl(data.path);
+      
+      return publicUrlData.publicUrl;
+    } catch (error: any) {
+      console.error("Error uploading avatar:", error);
+      alert(`Upload failed: ${error.message}`);
+      return null;
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
   
   const addLink = async () => {
     if (newTitle && newUrl) {
@@ -106,14 +210,55 @@ export default function Dashboard() {
   const saveProfile = async () => {
     setSaving(true);
     try {
-      await updateProfile({ 
+      // Upload avatar if a file is selected
+      let uploadedAvatarUrl = avatarUrl;
+      if (avatarFile) {
+        const url = await uploadAvatar();
+        if (url) {
+          console.log('New avatar URL:', url);
+          uploadedAvatarUrl = url;
+          setAvatarUrl(url);
+        }
+      }
+      
+      // Create profile data to send to backend
+      const profileData = { 
         name, 
         bio, 
+        avatar: uploadedAvatarUrl, // Send this to be saved in the backend
         theme: {
           pageBackground,
           buttonStyle
         }
-      });
+      };
+      
+      console.log('Updating profile with data:', profileData);
+      
+      // Send updated profile to backend
+      const response = await updateProfile(profileData);
+      
+      // Refresh user data from backend to ensure state is current
+      const updatedUserData = await getCurrentUser();
+      
+      // Update local user state with data from backend
+      if (updatedUserData?.data) {
+        // Update the avatar URL in the global context if applicable
+        if (typeof user === 'object' && user !== null) {
+          // Use the URL from the response to ensure it's exactly what the backend saved
+          const savedAvatarUrl = updatedUserData.data.avatar;
+          
+          // Update local state (if the URL from backend is different)
+          if (savedAvatarUrl && savedAvatarUrl !== avatarUrl) {
+            setAvatarUrl(savedAvatarUrl);
+          }
+        }
+      }
+      
+      // Clear the file input and preview
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      setAvatarFile(null);
+      setAvatarPreview(null);
+      
       alert("Profile updated successfully!");
     } catch (error) {
       console.error("Error updating profile:", error);
@@ -208,10 +353,22 @@ export default function Dashboard() {
           <div className="p-4 border-t border-zinc-800">
             {user && (
               <div className="flex items-center mb-4">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center mr-3">
-                  {user.name ? user.name[0].toUpperCase() : 'U'}
+                <div className="w-10 h-10 rounded-full overflow-hidden relative">
+                  {avatarUrl ? (
+                    <Image 
+                      src={avatarUrl} 
+                      alt={user.name || user.username}
+                      width={40}
+                      height={40}
+                      className="object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center">
+                      {user.name ? user.name[0].toUpperCase() : 'U'}
+                    </div>
+                  )}
                 </div>
-                <div>
+                <div className="ml-3">
                   <div className="font-medium">{user.name || 'User'}</div>
                   <div className="text-xs text-zinc-400">@{user.username}</div>
                 </div>
@@ -311,35 +468,83 @@ export default function Dashboard() {
                 <h2 className="text-2xl font-bold mb-6">Edit Profile</h2>
                 
                 <div className="bg-zinc-900 rounded-lg border border-zinc-800 p-6 mb-6">
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Display Name</label>
-                      <input 
-                        type="text" 
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        className="w-full p-2 rounded bg-zinc-800 border border-zinc-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                        placeholder="Your Name"
+                  <div className="mb-6 flex flex-col items-center sm:flex-row sm:items-start gap-6">
+                    <div className="flex flex-col items-center">
+                      <div className="w-24 h-24 rounded-full overflow-hidden relative mb-3">
+                        {avatarPreview ? (
+                          <Image 
+                            src={avatarPreview} 
+                            alt="Avatar Preview"
+                            width={96} 
+                            height={96}
+                            className="object-cover" 
+                          />
+                        ) : avatarUrl ? (
+                          <Image 
+                            src={avatarUrl} 
+                            alt="Current Avatar"
+                            width={96} 
+                            height={96}
+                            className="object-cover" 
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center text-xl font-bold">
+                            {user?.name ? user.name[0].toUpperCase() : 'U'}
+                          </div>
+                        )}
+                      </div>
+                      
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleAvatarChange}
+                        className="hidden"
+                        ref={fileInputRef}
                       />
+                      
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="flex items-center"
+                      >
+                        <Upload className="h-4 w-4 mr-2" />
+                        Choose Avatar
+                      </Button>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Bio</label>
-                      <textarea 
-                        value={bio}
-                        onChange={(e) => setBio(e.target.value)}
-                        className="w-full p-2 rounded bg-zinc-800 border border-zinc-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                        placeholder="Tell visitors about yourself"
-                        rows={4}
-                      ></textarea>
+                    
+                    <div className="space-y-4 flex-1">
+                      <div>
+                        <label className="block text-sm font-medium mb-2">Display Name</label>
+                        <input 
+                          type="text" 
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          className="w-full p-2 rounded bg-zinc-800 border border-zinc-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          placeholder="Your Name"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-2">Bio</label>
+                        <textarea 
+                          value={bio}
+                          onChange={(e) => setBio(e.target.value)}
+                          className="w-full p-2 rounded bg-zinc-800 border border-zinc-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          placeholder="Tell visitors about yourself"
+                          rows={4}
+                        ></textarea>
+                      </div>
                     </div>
-                    <Button 
-                      onClick={saveProfile} 
-                      disabled={saving}
-                      className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
-                    >
-                      {saving ? 'Saving...' : 'Save Profile'}
-                    </Button>
                   </div>
+                  
+                  <Button 
+                    onClick={saveProfile} 
+                    disabled={saving || uploadingAvatar}
+                    className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                  >
+                    {saving || uploadingAvatar ? 'Saving...' : 'Save Profile'}
+                  </Button>
                 </div>
                 
                 <div className="bg-zinc-900 rounded-lg border border-zinc-800 p-6">

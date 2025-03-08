@@ -86,6 +86,7 @@ class UserCreate(BaseModel):
 class UserUpdate(BaseModel):
     name: Optional[str] = None
     bio: Optional[str] = None
+    avatar: Optional[str] = None  # Added avatar field
     theme: Optional[ThemeSettings] = None
 
 class LinkCreate(BaseModel):
@@ -102,6 +103,7 @@ class UserResponse(BaseModel):
     email: str
     name: Optional[str] = None
     bio: Optional[str] = None
+    avatar: Optional[str] = None  # Added avatar field
     theme: Optional[ThemeSettings] = None
     links: List[LinkResponse] = []
 

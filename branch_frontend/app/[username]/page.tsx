@@ -56,7 +56,7 @@ export default function BranchPage({ params }: { params: { username: string } })
             alt={profile.name || profile.username}
             width={96}
             height={96}
-            className="rounded-full"
+            className="rounded-full object-cover"
           />
           <h1 className="mt-4 text-2xl font-bold">{profile.name || profile.username}</h1>
           {profile.bio && <p className="text-zinc-400 mt-2">{profile.bio}</p>}

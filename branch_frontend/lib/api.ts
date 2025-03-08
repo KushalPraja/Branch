@@ -86,6 +86,7 @@ export const getUserProfile = async (username: string) => {
 export const updateProfile = async (data: { 
   name?: string; 
   bio?: string;
+  avatar?: string | null;
   theme?: {
     pageBackground?: string;
     buttonStyle?: string;
