@@ -358,8 +358,7 @@ export default function Dashboard() {
                     <Image 
                       src={avatarUrl} 
                       alt={user.name || user.username}
-                      width={40}
-                      height={40}
+                      fill
                       className="object-cover"
                     />
                   ) : (
@@ -475,16 +474,16 @@ export default function Dashboard() {
                           <Image 
                             src={avatarPreview} 
                             alt="Avatar Preview"
-                            width={96} 
-                            height={96}
+                            fill
+            
                             className="object-cover" 
                           />
                         ) : avatarUrl ? (
                           <Image 
                             src={avatarUrl} 
                             alt="Current Avatar"
-                            width={96} 
-                            height={96}
+                            fill
+                           
                             className="object-cover" 
                           />
                         ) : (
