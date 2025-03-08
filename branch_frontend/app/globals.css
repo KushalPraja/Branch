@@ -122,3 +122,8 @@
   animation: spin-slow-reverse 15s linear infinite;
 }
 
+/* Text shadow utility for better readability on background images */
+.text-shadow {
+  text-shadow: 0px 1px 3px rgba(0, 0, 0, 0.8);
+}
+

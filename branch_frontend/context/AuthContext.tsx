@@ -22,8 +22,8 @@ type User = {
     pageBackground?: string;
     buttonStyle?: 'solid' | 'outline' | 'gradient';
     fontFamily?: string;
+    customBackground?: string;
   };
- 
 };
 
 // Define context type
@@ -37,7 +37,7 @@ type AuthContextType = {
 };
 
 // API base URL - make sure this matches your backend
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';  // Changed from 127.0.0.1 to localhost
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';  // Changed from 127.0.0.1 to localhost
 const API_PREFIX = '/api/v1'; // This should match your backend's API_PREFIX
 
 // Create axios instance with default config

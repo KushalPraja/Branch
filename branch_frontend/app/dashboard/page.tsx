@@ -43,6 +43,13 @@ export default function Dashboard() {
   const [pageBackground, setPageBackground] = useState('bg-black');
   const [buttonStyle, setButtonStyle] = useState('solid');
   const [fontFamily, setFontFamily] = useState('font-inter');
+  const [customBackground, setCustomBackground] = useState<string | null>(null);
+  
+  // Background upload states
+  const [backgroundFile, setBackgroundFile] = useState<File | null>(null);
+  const [backgroundPreview, setBackgroundPreview] = useState<string | null>(null);
+  const [uploadingBackground, setUploadingBackground] = useState(false);
+  const backgroundInputRef = useRef<HTMLInputElement>(null);
   
   const router = useRouter();
   
@@ -71,6 +78,7 @@ export default function Dashboard() {
         setPageBackground(user.theme.pageBackground || 'bg-black');
         setButtonStyle(user.theme.buttonStyle || 'solid');
         setFontFamily(user.theme.fontFamily || 'font-inter');
+        setCustomBackground(user.theme.customBackground || null);
       }
       
       // Directly fetch links from the database instead of using user object
@@ -196,6 +204,12 @@ export default function Dashboard() {
   };
   
   const removeLink = async (id: string) => {
+    console.log('Attempting to delete link with ID:', id);
+    if (!id) {
+      console.error("Invalid link ID: undefined");
+      return;
+    }
+    
     setSaving(true);
     try {
       await deleteLink(id);
@@ -212,6 +226,7 @@ export default function Dashboard() {
   const saveProfile = async () => {
     setSaving(true);
     try {
+
       // Upload avatar if a file is selected
       let uploadedAvatarUrl = avatarUrl;
       if (avatarFile) {
@@ -245,18 +260,15 @@ export default function Dashboard() {
       
       // Update local user state with data from backend
       if (updatedUserData?.data) {
-        // Update the avatar URL in the global context if applicable
+
         if (typeof user === 'object' && user !== null) {
-          // Use the URL from the response to ensure it's exactly what the backend saved
           const savedAvatarUrl = updatedUserData.data.avatar;
-          
           // Update local state (if the URL from backend is different)
           if (savedAvatarUrl && savedAvatarUrl !== avatarUrl) {
             setAvatarUrl(savedAvatarUrl);
           }
         }
       }
-      
       // Clear the file input and preview
       if (fileInputRef.current) fileInputRef.current.value = '';
       setAvatarFile(null);
@@ -274,13 +286,57 @@ export default function Dashboard() {
   const saveThemeSettings = async () => {
     setSaving(true);
     try {
-      await updateProfile({ 
-        theme: {
-          pageBackground,
-          buttonStyle,
-          fontFamily
+      // Upload background if a file is selected
+      let uploadedBackgroundUrl = customBackground;
+      if (backgroundFile) {
+        const url = await uploadBackground();
+        if (url) {
+          console.log('New wallpaper URL:', url);
+          uploadedBackgroundUrl = url;
+          setCustomBackground(url);
         }
-      });
+      }
+      
+      // Create the theme data object with all required fields
+      const themeData: {
+        pageBackground: string;
+        buttonStyle: string;
+        fontFamily: string;
+        customBackground?: string | null;
+      } = {
+        pageBackground,
+        buttonStyle,
+        fontFamily
+      };
+      
+      // When using a custom background, make sure to include the URL
+      if (pageBackground === 'custom') {
+        if (!uploadedBackgroundUrl) {
+          // If switching to custom without a background, alert the user
+          alert("Please upload a background image first");
+          setPageBackground('bg-black'); // Default fallback
+          setSaving(false);
+          return;
+        }
+        themeData.customBackground = uploadedBackgroundUrl;
+      } else {
+        // If not using custom background, explicitly set to null
+        themeData.customBackground = null;
+      }
+      
+      // Send the update to backend
+      const response = await updateProfile({ theme: themeData });
+      
+      // Refresh user data to ensure we have the latest
+      const updatedUserData = await getCurrentUser();
+      
+      // Clear the file input and preview if we've switched away from custom
+      if (pageBackground !== 'custom') {
+        if (backgroundInputRef.current) backgroundInputRef.current.value = '';
+        setBackgroundFile(null);
+        setBackgroundPreview(null);
+      }
+      
       alert("Theme settings saved successfully!");
     } catch (error) {
       console.error("Error saving theme settings:", error);
@@ -290,12 +346,116 @@ export default function Dashboard() {
     }
   };
 
+  // Background image upload handler
+  const handleBackgroundChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      
+      // Basic validation for image file types
+      if (!file.type.startsWith('image/')) {
+        alert('Please select an image file');
+        return;
+      }
+      
+      // Check file size (limit to 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Image size should be less than 5MB');
+        return;
+      }
+      
+      setBackgroundFile(file);
+      setBackgroundPreview(URL.createObjectURL(file));
+      
+      // When a custom background is selected, set a special value for pageBackground
+      setPageBackground('custom');
+    }
+  };
+  
+  // Background upload function
+  const uploadBackground = async (): Promise<string | null> => {
+    if (!backgroundFile || !user) return null;
+    
+    setUploadingBackground(true);
+    try {
+      const storage = createStorageClient();
+      
+      // Delete all old backgrounds for the user
+      if (user?.id) {
+        try {
+          const { data: existingFiles, error: listError } = await storage
+            .from('user-content')
+            .list(`wallpapers/${user.id}`);
+          
+          if (listError) {
+            console.error("Error listing existing wallpapers:", listError);
+          } else if (existingFiles && existingFiles.length > 0) {
+            const filesToDelete = existingFiles.map(file => `wallpapers/${user.id}/${file.name}`);
+            
+            const { error: deleteError } = await storage
+              .from('user-content')
+              .remove(filesToDelete);
+              
+            if (deleteError) {
+              console.error("Error deleting old wallpapers:", deleteError);
+            } else {
+              console.log(`Successfully deleted ${filesToDelete.length} old wallpaper(s)`);
+            }
+          }
+        } catch (deleteError) {
+          console.error("Error handling old wallpapers:", deleteError);
+        }
+      }
+      
+      // Generate a unique filename for wallpaper
+      const fileExt = backgroundFile.name.split('.').pop();
+      const fileName = `wallpaper-${user.id}-${Date.now()}.${fileExt}`;
+      const filePath = `wallpapers/${user.id}/${fileName}`;
+      
+      // Upload the wallpaper
+      const { data, error } = await storage
+        .from('user-content')
+        .upload(filePath, backgroundFile, {
+          cacheControl: '3600',
+          upsert: true
+        });
+        
+      if (error) {
+        throw error;
+      }
+      
+      if (!data?.path) {
+        throw new Error('Upload succeeded but no path was returned');
+      }
+      
+      // Get the public URL
+      const { data: publicUrlData } = storage
+        .from('user-content')
+        .getPublicUrl(data.path);
+      
+      return publicUrlData.publicUrl;
+    } catch (error: any) {
+      console.error("Error uploading wallpaper:", error);
+      alert(`Wallpaper upload failed: ${error.message}`);
+      return null;
+    } finally {
+      setUploadingBackground(false);
+    }
+  };
+
   // Preview component for the theme settings 
   const ThemePreview = () => (
-    <div className={`w-full h-40 rounded-xl ${pageBackground} flex items-center justify-center overflow-hidden border border-zinc-700 mb-6 shadow-lg shadow-black/30 relative`}>
+    <div 
+      className={`w-full h-40 rounded-xl ${pageBackground !== 'custom' ? pageBackground : ''} flex items-center justify-center overflow-hidden border border-zinc-700 mb-6 shadow-lg shadow-black/30 relative`}
+      style={pageBackground === 'custom' && (backgroundPreview || customBackground) ? {
+        backgroundImage: `url(${backgroundPreview || customBackground})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      } : {}}
+    >
       <div className="absolute inset-0 w-full h-full opacity-40 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.1),transparent)]"></div>
       <div className={`text-center p-4 relative z-10 ${fontFamily}`}>
-        <div className="text-lg font-bold mb-3">Theme Preview</div>
+        <div className="text-lg font-bold mb-3 text-shadow">Theme Preview</div>
         <button 
           className={`px-6 py-2.5 rounded-md ${
             buttonStyle === 'solid' ? 'bg-purple-600 text-white' : 
@@ -459,7 +619,7 @@ export default function Dashboard() {
                   ) : (
                     <div className="space-y-3">
                       {links.map(link => (
-                        <div key={link._id} className="flex items-center justify-between p-4 bg-zinc-800/50 rounded-lg border border-zinc-700/30 hover:bg-zinc-800/80 transition-all group">
+                        <div key={link._id || link.id} className="flex items-center justify-between p-4 bg-zinc-800/50 rounded-lg border border-zinc-700/30 hover:bg-zinc-800/80 transition-all group">
                           <div className="flex items-center">
                             <div className="w-10 h-10 rounded-md bg-gradient-to-br from-purple-600/20 to-blue-600/20 flex items-center justify-center mr-3 group-hover:from-purple-600/30 group-hover:to-blue-600/30 transition-all">
                               <LinkIcon className="h-5 w-5 text-purple-400" />
@@ -470,10 +630,16 @@ export default function Dashboard() {
                             </div>
                           </div>
                           <Button 
-                            onClick={() => removeLink(link._id)}
+                            onClick={() => {
+                              // Log the link object to debug
+                              console.log('Link object structure:', link);
+                              // Try both common ID properties
+                              const linkId = link._id || link.id;
+                              removeLink(linkId);
+                            }}
                             variant="outline" 
                             size="sm"
-                            className="text-red-400 hover:text-red-300 hover:bg-red-900/20 border-red-800/30"
+                            className="ml-3 text-red-400 hover:text-red-300 hover:bg-red-900/20 border-red-800/30"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -649,26 +815,94 @@ export default function Dashboard() {
                     {/* Existing Page Background Selection */}
                     <div>
                       <label className="block text-sm font-medium mb-3 text-zinc-300">Page Background</label>
-                      <div className="grid grid-cols-5 gap-3">
+                      <div className="grid grid-cols-6 gap-3">
                         {[
                           { value: 'bg-black', label: 'Black' },
                           { value: 'bg-zinc-900', label: 'Dark Gray' }, 
                           { value: 'bg-purple-900', label: 'Purple' }, 
                           { value: 'bg-blue-900', label: 'Blue' },
-                          { value: 'bg-gradient-to-br from-purple-900 to-blue-900', label: 'Gradient' }
+                          { value: 'bg-gradient-to-br from-purple-900 to-blue-900', label: 'Gradient' },
+                          { value: 'custom', label: 'Custom' }
                         ].map((bg) => (
                           <button 
                             key={bg.value}
                             onClick={() => setPageBackground(bg.value)}
-                            className={`h-12 w-full rounded-md ${bg.value} border-2 ${pageBackground === bg.value ? 'border-white' : 'border-zinc-700'} hover:border-white focus:outline-none focus:ring-2 focus:ring-white transition-all shadow-sm hover:shadow-md hover:shadow-purple-500/10`}
+                            className={`h-12 w-full rounded-md ${bg.value !== 'custom' ? bg.value : 'bg-zinc-800 flex items-center justify-center'} border-2 ${pageBackground === bg.value ? 'border-white' : 'border-zinc-700'} hover:border-white focus:outline-none focus:ring-2 focus:ring-white transition-all shadow-sm hover:shadow-md hover:shadow-purple-500/10`}
                             title={bg.label}
-                          />
+                          >
+                            {bg.value === 'custom' && (
+                              <div className={`text-xs ${pageBackground === 'custom' ? 'text-white' : 'text-zinc-400'}`}>Custom</div>
+                            )}
+                          </button>
                         ))}
                       </div>
-                      <div className="flex justify-between mt-2">
-                        <span className="text-xs text-zinc-500">Black</span>
-                        <span className="text-xs text-zinc-500">Gradient</span>
-                      </div>
+                      
+                      {/* Custom background uploader (only visible when 'custom' is selected) */}
+                      {pageBackground === 'custom' && (
+                        <div className="mt-4 p-4 bg-zinc-800/50 rounded-lg border border-zinc-700/30">
+                          <div className="flex flex-col sm:flex-row gap-4 items-start">
+                            <div className="w-24 h-24 rounded-md overflow-hidden relative border border-zinc-700/70">
+                              {backgroundPreview || customBackground ? (
+                                <Image 
+                                  src={backgroundPreview || customBackground || ''}
+                                  alt="Background Preview"
+                                  fill
+                                  className="object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full bg-zinc-800 flex items-center justify-center">
+                                  <Upload className="h-6 w-6 text-zinc-500" />
+                                </div>
+                              )}
+                            </div>
+                            
+                            <div className="flex-1 space-y-3">
+                              <div>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={handleBackgroundChange}
+                                  className="hidden"
+                                  ref={backgroundInputRef}
+                                />
+                                
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  onClick={() => backgroundInputRef.current?.click()}
+                                  className="flex items-center mb-2"
+                                >
+                                  <Upload className="h-4 w-4 mr-2" />
+                                  {customBackground ? 'Change Wallpaper' : 'Upload Wallpaper'}
+                                </Button>
+                                
+                                <p className="text-xs text-zinc-400">
+                                  Upload an image to use as your profile background.
+                                  <br />Max size: 5MB. Recommended: 1920×1080px or larger.
+                                </p>
+                              </div>
+                              
+                              {(backgroundPreview || customBackground) && (
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    if (backgroundInputRef.current) backgroundInputRef.current.value = '';
+                                    setBackgroundFile(null);
+                                    setBackgroundPreview(null);
+                                    setCustomBackground(null);
+                                  }}
+                                  className="text-red-400 hover:text-red-300 hover:bg-red-900/20 border-red-800/30"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Remove Wallpaper
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                     
                     {/* Existing Button Style Selection */}

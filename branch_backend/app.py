@@ -78,6 +78,7 @@ class ThemeSettings(BaseModel):
     pageBackground: Optional[str] = "bg-black"
     buttonStyle: Optional[str] = "solid"
     fontFamily: Optional[str] = "inter"
+    customBackground: Optional[str] = None
 
 class UserCreate(BaseModel):
     username: str
@@ -235,7 +236,12 @@ async def get_user_by_username(username: str):
         "name": user.get("name"),
         "bio": user.get("bio"),
         "avatar": user.get("avatar"),
-        "theme": user.get("theme", {"pageBackground": "bg-black", "buttonStyle": "solid"}),
+        "theme": user.get("theme", {
+            "pageBackground": "bg-black", 
+            "buttonStyle": "solid",
+            "fontFamily": "inter",
+            "customBackground": None
+        }),
         "links": []  # Initialize with empty links, will be filled later
     }
     
@@ -265,7 +271,9 @@ async def get_user_by_username(username: str):
     if "theme" not in user_data:
         user_data["theme"] = {
             "pageBackground": "bg-black",
-            "buttonStyle": "solid"
+            "buttonStyle": "solid",
+            "fontFamily": "inter",
+            "customBackground": None
         }
     
     print(f"DEBUG: Returning user with {len(user_data['links'])} links")
@@ -325,7 +333,7 @@ if __name__ == "__main__":
     import socket
     
     # Define port - use a different one than the default 8000
-    PORT = 8080
+    PORT = 8000
     
     # Check if port is already in use
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

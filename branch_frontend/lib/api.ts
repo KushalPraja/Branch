@@ -91,6 +91,7 @@ export const updateProfile = async (data: {
     pageBackground?: string;
     buttonStyle?: string;
     fontFamily?: string;
+    customBackground?: string | null;
   }
 }) => {
   try {

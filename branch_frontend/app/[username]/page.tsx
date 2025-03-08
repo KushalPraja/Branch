@@ -32,12 +32,31 @@ export default function BranchPage({ params }: { params: { username: string } })
   const pageBackground = profile.theme?.pageBackground || 'bg-black';
   const buttonStyle = profile.theme?.buttonStyle || 'solid';
   const fontFamily = profile.theme?.fontFamily || 'font-inter';
+  const customBackground = profile.theme?.customBackground || null;
+
+  // Function to generate page background style
+  const getBackgroundStyle = () => {
+    if (pageBackground === 'custom' && customBackground) {
+      console.log('Using custom background URL:', customBackground);
+      return {
+        backgroundImage: `url('${customBackground}')`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      };
+    }
+    return {};
+  };
 
   // Apply the user's theme settings to the public profile page with modern design
   return (
-    <div className={`flex flex-col items-center min-h-screen py-20 px-6 ${pageBackground} text-white ${fontFamily}`}>
-      {/* Light effect overlay */}
-      <div className="absolute inset-0 w-full h-full opacity-30 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.1),transparent)]"></div>
+    <div 
+      className={`flex flex-col items-center min-h-screen py-20 px-6 ${pageBackground !== 'custom' ? pageBackground : ''} text-white ${fontFamily}`}
+      style={getBackgroundStyle()}
+    >
+ 
+      {/* Add a light overlay on custom backgrounds for better text readability */}
+      <div className={`absolute inset-0 w-full h-full ${pageBackground === 'custom' ? 'bg-black/60' : 'opacity-30 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.1),transparent)]'}`}></div>
       
       <div className="max-w-md w-full space-y-8 text-center relative z-10">
         <div className="flex flex-col items-center">
