@@ -23,8 +23,8 @@ Branch is a modern LinkTree alternative that allows users to create customized l
 
 The project is divided into two main parts:
 
-- `branch_frontend/`: Next.js frontend application
-- `branch_backend/`: FastAPI backend server
+- `client/`: Next.js frontend application
+- `server/`: FastAPI backend server
 
 ## 🚀 Getting Started
 
@@ -40,7 +40,7 @@ The project is divided into two main parts:
 
 ```bash
 # Navigate to the frontend directory
-cd branch_frontend
+cd client
 
 # Install dependencies
 pnpm install
@@ -55,7 +55,7 @@ The frontend will be available at http://localhost:3000
 
 ```bash
 # Navigate to the backend directory
-cd branch_backend
+cd server
 
 # Build and start the Docker containers
 docker-compose up --build
@@ -70,7 +70,7 @@ The backend API will be available at http://localhost:8000
 
 ```bash
 # Navigate to the backend directory
-cd branch_backend
+cd server
 
 # Create a virtual environment
 python -m venv venv
