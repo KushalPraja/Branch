@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  backend:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - MONGODB_URI=mongodb+srv://notlink06:iZFLNOmfH4vYINqY@cluster0.arh7o.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
+      - SECRET_KEY=0ebda0b77cd69af508706486b30269c3c9a9e0899364710a2ec86d1e0d4ec98bedf333b16ab2a4975f3e619d87667bea4d5299b13912725154d5517d92975f6800efa7aefa112b4aaf49e7a6919ddde75a87684b9fe96545fb85cd8419f7c8d34b0a62194cfd69a65fb659e7eed9f25e519c39c19c730ecb6fb10c20dd3853f4e7c7499f935928f146be7f2782527e3bc0ba569a62f5f88163771de4f0b4b2b03150b356496f2d68fda55c2bb25f289e442545c313ba3a62cec59a0560d1426c91784d635b3d91a9548553648290398dfd068b89353a3ed33aea0b2bdc8208e62994f85d6863e8a3c85bc5dad9f77f36be43a3c2137a4f9566f474e588be617f
+      - API_PREFIX=/api/v1
+    volumes:
+      - ./:/app
+    restart: unless-stopped

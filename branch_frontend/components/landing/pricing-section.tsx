@@ -27,6 +27,7 @@ export function PricingSection() {
       cta: "Start for Free",
       ctaLink: "/signup",
       popular: false,
+      available: true
     },
     {
       name: "Pro",
@@ -44,9 +45,10 @@ export function PricingSection() {
         "Priority support",
         "Advanced customization",
       ],
-      cta: "Go Pro",
-      ctaLink: "/signup-pro",
+      cta: "Coming Soon",
+      ctaLink: "#",
       popular: true,
+      available: false
     },
     {
       name: "Business",
@@ -64,9 +66,10 @@ export function PricingSection() {
         "SSO login",
         "Dedicated account manager",
       ],
-      cta: "Contact Sales",
-      ctaLink: "/contact",
+      cta: "Coming Soon",
+      ctaLink: "#",
       popular: false,
+      available: false
     },
   ];
 
@@ -138,10 +141,21 @@ export function PricingSection() {
             <motion.div 
               key={index} 
               variants={cardVariants}
-              className={`bg-zinc-800/50 backdrop-blur-sm rounded-2xl overflow-hidden border ${
+              className={`bg-zinc-800/50 backdrop-blur-sm rounded-2xl overflow-hidden border relative ${
                 plan.popular ? 'border-purple-500/50 shadow-xl shadow-purple-500/10' : 'border-zinc-700/50'
               }`}
             >
+              {!plan.available && (
+                <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-20 text-white">
+                  <div className="bg-purple-600/80 px-4 py-2 rounded-lg font-bold text-xl mb-2">
+                    Not Available Yet
+                  </div>
+                  <p className="text-zinc-300 px-6 text-center">
+                    This plan will be available soon
+                  </p>
+                </div>
+              )}
+              
               {plan.popular && (
                 <div className="bg-gradient-to-r from-purple-500 to-blue-500 text-white text-center py-1.5 text-sm font-medium">
                   Most Popular
@@ -164,15 +178,25 @@ export function PricingSection() {
                 </div>
                 
                 <div className="mt-8">
-                  <Button 
-                    asChild 
-                    className={`w-full py-6 ${
-                      plan.popular ? 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white' : ''
-                    }`}
-                    variant={plan.popular ? 'default' : 'outline'}
-                  >
-                    <Link href={plan.ctaLink}>{plan.cta}</Link>
-                  </Button>
+                  {plan.available ? (
+                    <Button 
+                      asChild 
+                      className={`w-full py-6 ${
+                        plan.popular ? 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white' : ''
+                      }`}
+                      variant={plan.popular ? 'default' : 'outline'}
+                    >
+                      <Link href={plan.ctaLink}>{plan.cta}</Link>
+                    </Button>
+                  ) : (
+                    <Button 
+                      disabled
+                      className="w-full py-6 cursor-not-allowed opacity-70"
+                      variant={plan.popular ? 'default' : 'outline'}
+                    >
+                      {plan.cta}
+                    </Button>
+                  )}
                 </div>
                 
                 <div className="mt-8 space-y-4">
@@ -195,7 +219,7 @@ export function PricingSection() {
         
         <div className="mt-16 text-center">
           <p className="text-zinc-500">
-            Need something custom? <Link href="/contact" className="text-blue-400 hover:underline">Contact our sales team</Link>
+            Need something custom? <Link href="/signup" className="text-blue-400 hover:underline">Join the waitlist</Link>
           </p>
         </div>
       </div>

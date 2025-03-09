@@ -19,7 +19,7 @@ load_dotenv()
 # Environment variables
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 3
 
 # MongoDB setup (Atlas Cluster)
 MONGODB_URI = os.getenv("MONGODB_URI")
