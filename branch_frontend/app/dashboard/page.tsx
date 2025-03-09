@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import { getCurrentUser, createLink, deleteLink, updateProfile } from '@/lib/api';
 import { createStorageClient } from '@/lib/supabase/client';
 import { 
-  Home, 
   Link as LinkIcon, 
   Settings, 
   User, 
@@ -24,7 +23,7 @@ import {
 
 export default function Dashboard() {
   const { user, isLoading, isAuthenticated, logout } = useAuth();
-  const [links, setLinks] = useState<any[]>([]);
+  const [links, setLinks] = useState<{_id?: string; id?: string; title: string; url: string}[]>([]);
   const [newTitle, setNewTitle] = useState('');
   const [newUrl, setNewUrl] = useState('');
   const [name, setName] = useState('');
@@ -172,9 +171,10 @@ export default function Dashboard() {
         .getPublicUrl(data.path);
       
       return publicUrlData.publicUrl;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error uploading avatar:", error);
-      alert(`Upload failed: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      alert(`Upload failed: ${errorMessage}`);
       return null;
     } finally {
       setUploadingAvatar(false);
@@ -252,8 +252,8 @@ export default function Dashboard() {
       
       console.log('Updating profile with data:', profileData);
       
-      // Send updated profile to backend
-      const response = await updateProfile(profileData);
+      // Send updated profile to backend - use void to explicitly ignore return value
+      void await updateProfile(profileData);
       
       // Refresh user data from backend to ensure state is current
       const updatedUserData = await getCurrentUser();
@@ -275,7 +275,7 @@ export default function Dashboard() {
       setAvatarPreview(null);
       
       alert("Profile updated successfully!");
-    } catch (error) {
+    } catch (error: Error | unknown) {
       console.error("Error updating profile:", error);
       alert("Error updating profile. Please try again.");
     } finally {
@@ -324,11 +324,10 @@ export default function Dashboard() {
         themeData.customBackground = null;
       }
       
-      // Send the update to backend
-      const response = await updateProfile({ theme: themeData });
+      // Send the update to backend - use void to explicitly ignore return value
+      void await updateProfile({ theme: themeData });
       
-      // Refresh user data to ensure we have the latest
-      const updatedUserData = await getCurrentUser();
+      
       
       // Clear the file input and preview if we've switched away from custom
       if (pageBackground !== 'custom') {
@@ -338,7 +337,7 @@ export default function Dashboard() {
       }
       
       alert("Theme settings saved successfully!");
-    } catch (error) {
+    } catch (error: Error | unknown) {
       console.error("Error saving theme settings:", error);
       alert("Error saving theme settings. Please try again.");
     } finally {
@@ -433,9 +432,10 @@ export default function Dashboard() {
         .getPublicUrl(data.path);
       
       return publicUrlData.publicUrl;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error uploading wallpaper:", error);
-      alert(`Wallpaper upload failed: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      alert(`Wallpaper upload failed: ${errorMessage}`);
       return null;
     } finally {
       setUploadingBackground(false);
@@ -613,7 +613,7 @@ export default function Dashboard() {
                       <div className="bg-zinc-800/70 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner shadow-black/30">
                         <LinkIcon className="h-8 w-8 text-zinc-500" />
                       </div>
-                      <p className="text-zinc-300 font-medium">You haven't added any links yet.</p>
+                      <p className="text-zinc-300 font-medium">You haven&apos;t added any links yet.</p>
                       <p className="text-sm text-zinc-500 mt-1">Add your first link above to get started!</p>
                     </div>
                   ) : (
@@ -635,7 +635,11 @@ export default function Dashboard() {
                               console.log('Link object structure:', link);
                               // Try both common ID properties
                               const linkId = link._id || link.id;
-                              removeLink(linkId);
+                              if (linkId) {
+                                removeLink(linkId);
+                              } else {
+                                console.error("Cannot remove link: No valid ID found");
+                              }
                             }}
                             variant="outline" 
                             size="sm"
@@ -879,6 +883,7 @@ export default function Dashboard() {
                                 <p className="text-xs text-zinc-400">
                                   Upload an image to use as your profile background.
                                   <br />Max size: 5MB. Recommended: 1920×1080px or larger.
+                                  {uploadingBackground ? "Uploading background..." : ""}
                                 </p>
                               </div>
                               

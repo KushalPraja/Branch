@@ -1,6 +1,6 @@
 'use client' 
 
-import { Check, HelpCircle } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
@@ -106,7 +106,7 @@ export function PricingSection() {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="text-xl text-zinc-400 max-w-3xl mx-auto"
           >
-            Choose the plan that's right for you and start building your link hub today
+            Choose the plan that is right for you and start building your link hub today
           </motion.p>
           
           <div className="mt-10">
@@ -152,6 +152,10 @@ export function PricingSection() {
                 <h3 className="text-2xl font-bold text-white">{plan.name}</h3>
                 <p className="text-zinc-400 mt-2">{plan.description}</p>
                 
+                <p className="text-zinc-400 text-sm mb-6">
+                  All the essentials you&apos;ll need to get started
+                </p>
+                
                 <div className="mt-6">
                   <div className="flex items-end">
                     <span className="text-4xl font-bold text-white">{annual ? plan.price.annually : plan.price.monthly}</span>
@@ -172,13 +176,17 @@ export function PricingSection() {
                 </div>
                 
                 <div className="mt-8 space-y-4">
-                  <p className="font-medium text-white text-sm uppercase tracking-wider">What's included:</p>
+                  <p className="font-medium text-white text-sm uppercase tracking-wider">What&apos;s included:</p>
                   {plan.features.map((feature, i) => (
                     <div key={i} className="flex items-center">
                       <Check className="h-5 w-5 text-green-400 mr-3 shrink-0" />
                       <span className="text-zinc-300">{feature}</span>
                     </div>
                   ))}
+                </div>
+                
+                <div className="text-xs text-zinc-500 mt-4 text-center">
+                  No credit card required. You&apos;ll only pay when you&apos;re ready to upgrade.
                 </div>
               </div>
             </motion.div>

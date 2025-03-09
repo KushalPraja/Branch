@@ -57,36 +57,15 @@ export default function SignUp() {
     try {
       await signup(username, email, password);
       console.log('Signup successful, redirecting...');
-    } catch (err: any) {
+    } catch (err: Error | unknown) {
       console.error('Signup error details:', err);
       
-      if (err.response) {
-        console.log('Error status:', err.response.status);
-        console.log('Error headers:', err.response.headers);
-        console.log('Error data:', err.response.data);
-        
-        if (err.response.status === 400) {
-          if (typeof err.response.data === 'object' && err.response.data.detail) {
-            const detail = err.response.data.detail;
-            if (detail.includes('username')) {
-              setError('Username already exists');
-            } else if (detail.includes('email')) {
-              setError('Email already registered');
-            } else {
-              setError(detail);
-            }
-          } else {
-            setError('Registration failed: Bad request');
-          }
-        } else {
-          setError(`Server error (${err.response.status}). Please try again.`);
-        }
-      } else if (err.request) {
-        console.log('No response received:', err.request);
-        setError('Cannot connect to server. Please check server status and try again.');
-      } else {
+      if (err instanceof Error) {
         console.log('Error message:', err.message);
         setError('An error occurred during signup. Please try again.');
+      } else {
+        console.log('Unknown error:', err);
+        setError('An unknown error occurred during signup. Please try again.');
       }
     } finally {
       setIsSubmitting(false);

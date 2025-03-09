@@ -1,7 +1,7 @@
 'use client' 
 
 import Image from 'next/image';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Quote } from 'lucide-react';
 
@@ -35,9 +35,10 @@ export function TestimonialsSection() {
 
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  const nextTestimonial = () => {
+  // Fix the dependency warning by using useCallback
+  const nextTestimonial = useCallback(() => {
     setCurrentIndex((prevIndex) => (prevIndex + 1) % testimonials.length);
-  };
+  }, [testimonials.length]);
 
   const prevTestimonial = () => {
     setCurrentIndex((prevIndex) => (prevIndex - 1 + testimonials.length) % testimonials.length);
@@ -49,7 +50,7 @@ export function TestimonialsSection() {
     }, 8000);
     
     return () => clearInterval(interval);
-  }, []);
+  }, [nextTestimonial]); // Add missing dependency
 
   return (
     <section id="testimonials" className="py-24 relative overflow-hidden">
@@ -133,7 +134,7 @@ export function TestimonialsSection() {
                           <div className="relative">
                             <Quote className="absolute -top-6 -left-6 w-12 h-12 text-purple-600/20" />
                             <p className="text-xl md:text-2xl font-light text-zinc-300 italic leading-relaxed">
-                              "{testimonial.quote}"
+                              &ldquo;{testimonial.quote}&rdquo;
                             </p>
                           </div>
                         </div>

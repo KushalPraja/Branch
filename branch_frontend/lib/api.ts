@@ -22,6 +22,18 @@ export const login = async (username: string, password: string) => {
   }
 };
 
+// Define proper interfaces for API error responses
+interface ApiErrorResponse {
+  status?: number;
+  data?: unknown;
+}
+
+interface ApiError {
+  name?: string;
+  response?: ApiErrorResponse;
+  request?: unknown;
+}
+
 export const signup = async (userData: { username: string; email: string; password: string }) => {
   try {
     console.log('API: Sending signup request to:', `${API_PREFIX}/users/`);
@@ -47,17 +59,23 @@ export const signup = async (userData: { username: string; email: string; passwo
     });
     
     return response;
-  } catch (error: any) {
-    console.error('API: Signup failed with error:', error.message);
-    if (error.name === 'AbortError') {
+  } catch (error: unknown) {
+    console.error('API: Signup failed with error:', error instanceof Error ? error.message : 'Unknown error');
+    
+    if (error instanceof Error && error.name === 'AbortError') {
       console.error('API: Request timed out after 15 seconds');
     }
-    if (error.response) {
-      console.error('API: Server responded with status:', error.response.status);
-      console.error('API: Response data:', error.response.data);
-    } else if (error.request) {
+    
+    if (error && typeof error === 'object' && 'response' in error) {
+      const errorWithResponse = error as ApiError;
+      if (errorWithResponse.response) {
+        console.error('API: Server responded with status:', errorWithResponse.response.status);
+        console.error('API: Response data:', errorWithResponse.response.data);
+      }
+    } else if (error && typeof error === 'object' && 'request' in error) {
       console.error('API: No response received from server');
     }
+    
     throw error;
   }
 };

@@ -7,6 +7,16 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 
+// Add proper interface for error type
+interface ApiError {
+  response?: {
+    status?: number;
+    data?: {
+      detail?: string;
+    };
+  };
+}
+
 export default function SignIn() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -45,12 +55,13 @@ export default function SignIn() {
     try {
       await login(username, password);
       // Successful login will redirect in the login function
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Login error:', err);
-      if (err.response?.status === 401) {
+      const error = err as ApiError;
+      if (error.response?.status === 401) {
         setError('Invalid username or password. Please try again.');
-      } else if (err.response?.data?.detail) {
-        setError(err.response.data.detail);
+      } else if (error.response?.data?.detail) {
+        setError(error.response.data.detail);
       } else {
         setError('Login failed. Please check your connection and try again.');
       }
@@ -248,7 +259,7 @@ export default function SignIn() {
           transition={{ delay: 0.4, duration: 0.8 }}
         >
           <p>
-            Don't have an account?{' '}
+            Don&apos;t have an account?{' '}
             <Link href="/signup" className="text-purple-400 hover:text-purple-300 font-medium transition-colors">
               Sign up
             </Link>

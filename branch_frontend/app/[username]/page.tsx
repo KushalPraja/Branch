@@ -4,10 +4,33 @@ import { useEffect, useState } from 'react';
 import { getUserProfile } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import LinkCard from '@/components/LinkCard';
+// Remove unused import
+// import LinkCard from '@/components/LinkCard';
+
+// Add proper interfaces
+interface UserLink {
+  id?: string;
+  _id?: string;
+  title: string;
+  url: string;
+}
+
+interface ProfileData {
+  name?: string;
+  username: string;
+  bio?: string;
+  avatar?: string;
+  links: UserLink[];
+  theme?: {
+    pageBackground?: string;
+    buttonStyle?: string;
+    fontFamily?: string;
+    customBackground?: string | null;
+  };
+}
 
 export default function BranchPage({ params }: { params: { username: string } }) {
-  const [profile, setProfile] = useState<any | null | undefined>(undefined); // undefined = loading, null = not found
+  const [profile, setProfile] = useState<ProfileData | null | undefined>(undefined); // undefined = loading, null = not found
   const router = useRouter();
 
   useEffect(() => {
@@ -15,9 +38,12 @@ export default function BranchPage({ params }: { params: { username: string } })
       try {
         const response = await getUserProfile(params.username);
         setProfile(response.data);
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('Error fetching user profile:', error);
-        if (error.response && error.response.status === 404) {
+        // Type check for axios error structure
+        if (typeof error === 'object' && error !== null && 'response' in error && 
+            error.response && typeof error.response === 'object' && 'status' in error.response && 
+            error.response.status === 404) {
           setProfile(null);
         }
       }
@@ -79,7 +105,7 @@ export default function BranchPage({ params }: { params: { username: string } })
         
         <div className="mt-10 space-y-4">
           {profile.links.length > 0 ? (
-            profile.links.map((link: any) => (
+            profile.links.map((link: UserLink) => (
               <a 
                 key={link.id} 
                 href={link.url}
@@ -103,9 +129,9 @@ export default function BranchPage({ params }: { params: { username: string } })
         
         {/* Footer */}
         <div className="mt-16 text-center">
-          <p className="text-xs text-zinc-500">
-            Powered by <span className="text-purple-400 font-medium">Branch</span>
-          </p>
+            <p className="text-xs text-zinc-500">
+            Powered by <a href="/" className="text-purple-400 font-medium hover:underline">Branch</a>
+            </p>
         </div>
       </div>
     </div>

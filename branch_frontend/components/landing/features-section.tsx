@@ -1,7 +1,6 @@
 'use client'
 
 import { motion } from 'framer-motion';
-import Image from 'next/image';
 import { CheckCircle2, Sparkles, BarChart3, Palette, Share2, ShieldCheck } from 'lucide-react';
 
 export function FeaturesSection() {
