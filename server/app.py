@@ -330,23 +330,6 @@ app.add_middleware(
 
 if __name__ == "__main__":
     import uvicorn
-    import socket
-    
-    # Define port - use a different one than the default 8000
-    PORT = 8000
-    
-    # Check if port is already in use
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    in_use = False
-    try:
-        sock.bind(('localhost', PORT))
-    except socket.error:
-        in_use = True
-    finally:
-        sock.close()
-    
-    if in_use:
-        print(f"WARNING: Port {PORT} is already in use! This might cause conflicts.")
-        
-    print(f"Starting server on port {PORT}...")
+    # Get port from environment or use default
+    PORT = int(os.getenv("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=PORT)

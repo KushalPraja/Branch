@@ -1,15 +1,17 @@
-FROM python:3.11-slim
+FROM python:3.12.3
 
 WORKDIR /app
 
 # Install dependencies
 COPY requirements.txt .
+
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY . .
 
-# Expose port for the application
+# Set environment variable
+ENV PORT=8000
 EXPOSE 8000
 
 # Command to run the application
