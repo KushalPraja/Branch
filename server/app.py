@@ -327,9 +327,3 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-if __name__ == "__main__":
-    import uvicorn
-    # Get port from environment or use default
-    PORT = int(os.getenv("PORT", 8000))
-    uvicorn.run(app, host="0.0.0.0", port=PORT)
